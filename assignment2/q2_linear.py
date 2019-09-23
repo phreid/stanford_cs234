@@ -50,7 +50,14 @@ class Linear(DQN):
         ##############################################################
         ################YOUR CODE HERE (6-15 lines) ##################
 
-        pass
+        s_shape = [config.batch_size, *state_shape[:2], state_shape[2] * config.state_history]
+
+        self.s = tf.placeholder(tf.uint8, s_shape)
+        self.a = tf.placeholder(tf.int32, config.batch_size)
+        self.r = tf.placeholder(tf.float32, config.batch_size)
+        self.sp = tf.placeholder(tf.uint8, s_shape)
+        self.done_mask = tf.placeholder(tf.bool, config.batch_size)
+        self.lr = tf.placeholder(tf.float32)
 
         ##############################################################
         ######################## END YOUR CODE #######################
@@ -88,7 +95,9 @@ class Linear(DQN):
         ##############################################################
         ################ YOUR CODE HERE - 2-3 lines ################## 
         
-        pass
+        with tf.variable_scope(scope):
+            flat = tf.layers.flatten(state)
+            out = tf.layers.dense(flat, env.action_space.n, reuse = reuse)
 
         ##############################################################
         ######################## END YOUR CODE #######################
@@ -132,7 +141,15 @@ class Linear(DQN):
         ##############################################################
         ################### YOUR CODE HERE - 5-10 lines #############
         
-        pass
+        vars_q_scope = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope = q_scope)
+        vars_target_scope = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, 
+            scope = target_q_scope)
+        
+        variables = zip(vars_q_scope, vars_target_scope)
+        
+        ops = [tf.assign(var[1], var[0]) for var in variables]
+
+        self.update_target_op = tf.group(*ops)
 
         ##############################################################
         ######################## END YOUR CODE #######################
@@ -171,7 +188,14 @@ class Linear(DQN):
         ##############################################################
         ##################### YOUR CODE HERE - 4-5 lines #############
 
-        pass
+        mask = tf.cast(self.done_mask, tf.float32)
+        not_mask = tf.cast(tf.logical_not(self.done_mask), tf.float32)
+        
+        r_mask = r * mask
+        q_samp = (r + config.gamma * tf.reduce_max(target_q, 1)) * not_mask
+        q_samp = r_mask + q_samp
+
+        self.loss = tf.reduce_mean(tf.squared_difference(q_samp, q))
 
         ##############################################################
         ######################## END YOUR CODE #######################
