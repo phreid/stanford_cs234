@@ -139,7 +139,7 @@ class QN(object):
 
         if len(scores_eval) > 0:
             self.eval_reward = scores_eval[-1]
-
+            
 
     def train(self, exp_schedule, lr_schedule):
         """
